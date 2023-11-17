@@ -4,6 +4,9 @@ import numpy as np
 import h5py
 from PIL import Image
 
+from scripts.preprocessing.preprocessing import preprocess_images
+from scripts.utility.path_utils import get_path_from_root
+
 
 def load_digit_struct(file_path):
     """
@@ -16,6 +19,9 @@ def load_digit_struct(file_path):
         digit_struct: Struct with bounding box information
 
     """
+    with h5py.File(file_path, "r") as file:
+        digit_struct = file["digitStruct"]["bbox"]
+    return digit_struct
 
 
 def bbox_helper(attr, file):
@@ -26,7 +32,7 @@ def bbox_helper(attr, file):
         file: The HDF5 file reference.
 
     Returns:
-        Attrbute Value.
+        Attribute Value.
     """
 
     if len(attr) > 1:
@@ -93,30 +99,7 @@ def load_svhn_data(data_dir, subset="extra"):
     return images, bboxes
 
 
-def preprocess_images(images, target_size=(32, 32)):
-    """
-    Preprocess images for model input
-
-    Args:
-        images: List of PIL images.
-        target_size: Target size to resize images.
-
-    Returns:
-        preprocessed_images: Numpy array of preprocessed images.
-
-    """
-    preprocessed_images = []
-
-    for img in images:
-
-        # Resize images
-        img = img.resize(target_size, Image.ANTIALIAS)
-
-        # Convert to numpy array and normalize
-        img_array = np.array(img, dtype=np.float32) / 255,0
-        preprocessed_images.append(img_array)
-
-    return np.array(preprocessed_images)
-
-
-
+if __name__ == "__main__":
+    data_dir = get_path_from_root("data", "trial")  # Modify as needed
+    images, bboxes = load_svhn_data(data_dir)
+    images = preprocess_images(images)
