@@ -1,8 +1,9 @@
 import os
 
-import numpy as np
 import h5py
 from PIL import Image
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 from scripts.preprocessing.preprocessing import preprocess_images
 from scripts.utility.path_utils import get_path_from_root
@@ -99,7 +100,48 @@ def load_svhn_data(data_dir, subset="extra"):
     return images, bboxes
 
 
+def extract_labels(bbox, max_length=5):
+    """
+    Extract labels from bounding box data and pad sequences to a fixed length.
+    Args:
+        bbox: List of bounding box dictionaries.
+        max_length: Maximum length of the sequence.
+    Returns:
+        Numpy array of labels.
+    """
+    labels = []
+    for box in bbox:
+        label = [int(h[0]) if h[0] != 10 else 0 for h in box['label']]  # Convert 10 -> 0 for digit '0'
+        labels.append(label)
+    return pad_sequences(labels, maxlen=max_length, padding='post')
+
+
+def prepare_data_for_model(images, bboxes, test_size=0.2, random_state=42):
+    """
+    Prepares the dataset for training and testing.
+
+    Args:
+        images: List of PIL image objects.
+        bboxes: List of bounding box information.
+        test_size: Fraction of data to be used as test set.
+        random_state: Random state for reproducibility.
+
+    Returns:
+        X_train, X_test, y_train, y_test: Training and testing splits.
+    """
+    # Preprocess images: resize, normalize, etc.
+    processed_images = preprocess_images(images)  # Assuming this function returns np.array
+
+    # Extract and preprocess labels
+    labels = extract_labels(bboxes)
+
+    # Split data into training and testing
+    return train_test_split(processed_images, labels, test_size=test_size, random_state=random_state)
+
+
 if __name__ == "__main__":
     data_dir = get_path_from_root("data", "trial")  # Modify as needed
     images, bboxes = load_svhn_data(data_dir)
-    images = preprocess_images(images)
+
+    # Prepare data for modeling
+    X_train, X_test, y_train, y_test = prepare_data_for_model(images, bboxes)
